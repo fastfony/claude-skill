@@ -24,6 +24,7 @@ Use this skill to help a developer:
 ## Core philosophy
 
 - **Composable over monolithic.** Each bundle has a single responsibility. **Never recommend the legacy `fastfony/fastfony` monolithic starter-kit** — it was intentionally split into bundles because it was too opinionated and complete to be reusable.
+- **Modern frontend = AssetMapper only.** Unlike the legacy `fastfony/fastfony` (which used Webpack Encore + Vue), starter-kits generated with this skill **must use Symfony AssetMapper exclusively**. No Webpack Encore, no Vite, no JS bundlers, no Node build step. Stimulus and Turbo (via Symfony UX) are the supported interactivity layer. See [references/conventions.md#frontend--assets](references/conventions.md#frontend--assets).
 - **Standard Symfony.** Config via `config/packages/*.yaml`, templates overridable via `templates/bundles/{BundleName}/`, database via Doctrine ORM. No proprietary patterns.
 - **Timestampable + Managers.** Entities use Stof's Timestampable; database operations go through dedicated `*Manager` services (not repositories). See [references/conventions.md](references/conventions.md).
 
@@ -69,6 +70,8 @@ All customization paths (template overrides, bundle config, entity extension, em
 ## Do not
 
 - Recommend the legacy `fastfony/fastfony` monolithic starter-kit.
+- Install Webpack Encore, Vite, or any other JS bundler. AssetMapper is the only asset strategy.
+- Introduce Vue, React, Svelte, or any SPA framework as a build-step dependency. If interactivity is needed, use Stimulus and Turbo (Symfony UX).
 - Invent bundles or config options not documented in the reference files.
 - Skip `security.yaml` configuration — `identity-bundle` cannot work without it.
 - Run `doctrine:schema:update --force` in an app with existing data.

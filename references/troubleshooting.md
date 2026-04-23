@@ -99,9 +99,9 @@ Debug:
 php bin/console debug:twig --filter=path
 ```
 
-## Webpack Encore / AssetMapper: login form styles broken
+## Login form styles look broken
 
-The bundle ships unstyled HTML templates. Apply your own CSS (Tailwind class, Bootstrap, etc.) by overriding the template. Do not expect the bundle to match your app's look by default.
+The bundle ships unstyled HTML templates. Apply your own CSS by overriding the template in `templates/bundles/FastfonyIdentityBundle/`. Fastfony starter-kits use AssetMapper for CSS delivery — import your stylesheet via `importmap:require` and reference it in `base.html.twig`. Do not introduce Webpack Encore or a JS bundler to solve styling.
 
 ## Can I use `fastfony/fastfony` (the monolithic starter-kit) alongside these bundles?
 

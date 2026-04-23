@@ -125,6 +125,24 @@ final class UserManager
 - Override templates under `templates/bundles/{BundleName}/`.
 - Bundle main class extends `Symfony\Component\HttpKernel\Bundle\AbstractBundle` and defines `configure()` + `loadExtension()` (no separate `DependencyInjection/` directory needed for simple cases).
 
+## Frontend / assets
+
+**AssetMapper only.** Starter-kits and bundles generated or extended via this skill must use Symfony AssetMapper as the sole asset handler. No Webpack Encore, no Vite, no bundlers, no Node build step. This is a hard rule — it differentiates current Fastfony kits from the legacy `fastfony/fastfony` monolith (which used Encore + Vue).
+
+What's allowed:
+
+- **CSS**: Tailwind via `symfonycasts/tailwind-bundle`, or plain CSS imported through the importmap. Preflight happens at request time in dev, pre-built in prod via `php bin/console asset-map:compile`.
+- **JS interactivity**: **Stimulus** controllers (`symfony/stimulus-bundle`) and **Turbo** (`symfony/ux-turbo`) — both wire cleanly into AssetMapper.
+- **Third-party JS**: add via `php bin/console importmap:require <package>` (uses JSPM / jsDelivr CDN resolution). Avoid anything that requires a build step (JSX, TSX, SCSS preprocessing beyond Tailwind).
+
+What's NOT allowed:
+
+- Webpack Encore (`@symfony/webpack-encore`), Vite, Parcel, Rollup, or any bundler.
+- `package.json` for runtime deps. A `package.json` may exist only for Tailwind CLI if the user opts into it, but prefer the Symfony Tailwind bundle which handles this transparently.
+- Vue, React, Svelte, Angular — no SPA frameworks as build-step deps. If a feature truly needs client-side reactivity beyond Stimulus/Turbo, open an issue rather than introducing a bundler.
+
+Migrating a user's legacy Encore setup to AssetMapper is in scope for this skill; installing Encore is not.
+
 ## Code quality
 
 Minimum for a bundle to be publishable under `fastfony/*`:

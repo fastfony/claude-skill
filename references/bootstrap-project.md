@@ -8,10 +8,11 @@ Goal: end up with a fresh Symfony project, ready-to-use authentication via `fast
 php -v            # ≥ 8.2
 symfony -v        # Symfony CLI installed (recommended)
 composer -V
-node -v           # ≥ 20 if you plan to use Webpack Encore / AssetMapper
 ```
 
 If the Symfony CLI is missing, install from https://symfony.com/download.
+
+**No Node / npm required.** Fastfony starter-kits use Symfony AssetMapper exclusively for frontend assets. Do not introduce Webpack Encore, Vite, or any bundler. See [conventions.md — Frontend](conventions.md#frontend--assets).
 
 ## 1. Create the project
 
@@ -22,7 +23,7 @@ symfony new my-starter --version="7.4.*" --webapp
 cd my-starter
 ```
 
-`--webapp` pulls in the common webapp recipe (Twig, Doctrine, Security, Mailer, Form, Validator, AssetMapper, etc.). If they want a slimmer kit, use plain `symfony new my-starter --version="7.4.*"` and add pieces later.
+`--webapp` pulls in the common webapp recipe (Twig, Doctrine, Security, Mailer, Form, Validator, **AssetMapper**, Stimulus, Turbo, etc.) — exactly what Fastfony starter-kits are built on. If they want a slimmer kit, use plain `symfony new my-starter --version="7.4.*"` and add pieces later, but **always keep AssetMapper as the asset handler** (never add Encore or a JS bundler).
 
 ## 2. Initial commit
 
