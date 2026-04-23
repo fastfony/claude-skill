@@ -4,8 +4,13 @@ Apply these when writing code that will live alongside Fastfony bundles, and esp
 
 ## PHP & Symfony baseline
 
-- **PHP** ≥ 8.1 for a bundle (compatibility), ≥ 8.2 for an application. Prefer 8.3+ for new starter-kits.
-- **Symfony** 7.4 LTS or 8.0. Bundles declare `"symfony/*": "^7.4|^8.0"`.
+- **PHP**: minimum depends on the **Symfony** release.
+  - A Fastfony **bundle** keeps PHP ≥ 8.1 (to maximize downstream compat) and declares `"symfony/*": "^7.4|^8.0"`.
+  - An **application** built with this skill follows the chosen Symfony version:
+    - Symfony **7.4 LTS** → PHP ≥ **8.2**
+    - Symfony **8.0** → PHP ≥ **8.4**
+  - Never state "PHP 8.4 required" in a 7.4 LTS starter-kit.
+- **Symfony**: default to 7.4 LTS for new starter-kits unless the user asks for 8.0.
 - **`declare(strict_types=1);`** at the top of every PHP file.
 - **Final classes** by default. Only drop `final` when a class is explicitly designed for extension (e.g. `BaseUser` in a bundle). Document the extension contract in that case.
 - **Constructor property promotion** everywhere.
@@ -131,9 +136,10 @@ final class UserManager
 
 What's allowed:
 
-- **CSS**: Tailwind via `symfonycasts/tailwind-bundle`, or plain CSS imported through the importmap. Preflight happens at request time in dev, pre-built in prod via `php bin/console asset-map:compile`.
+- **CSS**: Tailwind via `symfonycasts/tailwind-bundle` (Tailwind v4 integration). The helper `tailwind_stylesheet()` was removed in bundle v0.11+ — do **not** call it. The integration flows entirely through AssetMapper: `assets/app.js` imports `./styles/app.css`, and `{{ importmap('app') }}` in `base.html.twig` emits the link tag. Dev: `symfony console tailwind:build --watch` in a second terminal. Prod: `symfony console tailwind:build` + `symfony console asset-map:compile`.
+- **Plain CSS**: imported through the importmap like any asset.
 - **JS interactivity**: **Stimulus** controllers (`symfony/stimulus-bundle`) and **Turbo** (`symfony/ux-turbo`) — both wire cleanly into AssetMapper.
-- **Third-party JS**: add via `php bin/console importmap:require <package>` (uses JSPM / jsDelivr CDN resolution). Avoid anything that requires a build step (JSX, TSX, SCSS preprocessing beyond Tailwind).
+- **Third-party JS**: add via `symfony console importmap:require <package>` (uses JSPM / jsDelivr CDN resolution). Avoid anything that requires a build step (JSX, TSX, SCSS preprocessing beyond Tailwind).
 
 What's NOT allowed:
 

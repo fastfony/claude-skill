@@ -2,29 +2,52 @@
 
 Common issues when integrating Fastfony bundles, with the diagnostic command and fix.
 
+## Contrib recipe ignored / manual config needed
+
+**Cause**: At install time, `composer require fastfony/identity-bundle` (or `stof/doctrine-extensions-bundle`) printed:
+
+```
+IGNORING  fastfony/identity-bundle (>=1.0): From github.com/symfony/recipes-contrib:main
+```
+
+The recipe is then marked "installed" in `symfony.lock`, but the `add-lines` operations that inject provider/firewall/access_control into `security.yaml` and register the bundle in `config/bundles.php` were **not** applied. `composer recipes:install --force` replays `copy-from-recipe` but not `add-lines`, so this is not recoverable automatically.
+
+**Prevention** (do this before the first `composer require`):
+
+```bash
+composer config extra.symfony.allow-contrib true
+```
+
+**Recovery** (if you got bit already):
+
+1. Add the bundles to `config/bundles.php` manually:
+
+   ```php
+   Stof\DoctrineExtensionsBundle\StofDoctrineExtensionsBundle::class => ['all' => true],
+   Fastfony\IdentityBundle\FastfonyIdentityBundle::class => ['all' => true],
+   ```
+
+2. Create `config/packages/stof_doctrine_extensions.yaml` — see [identity-bundle.md §4.1](identity-bundle.md).
+3. Rewrite `config/packages/security.yaml` with the provider + firewall + access_control — see [identity-bundle.md §4.2](identity-bundle.md).
+4. Create `config/routes/fastfony_identity.yaml` — see [identity-bundle.md §4.3](identity-bundle.md).
+5. `symfony console cache:clear` then verify: `symfony console debug:router | grep -iE 'login|register|password|secure-area'` should list the routes.
+6. (Still enable `allow-contrib` for future contrib bundles.)
+
 ## `Class "Fastfony\IdentityBundle\FastfonyIdentityBundle" does not exist`
 
-**Cause**: Bundle isn't autoloaded or the package didn't install.
+**Cause**: Bundle isn't autoloaded, or the Flex recipe didn't register it in `config/bundles.php` (see [Contrib recipe ignored](#contrib-recipe-ignored--manual-config-needed) above — the most common cause).
 
 ```bash
 composer show fastfony/identity-bundle
+grep -n FastfonyIdentityBundle config/bundles.php
 composer dump-autoload
 ```
 
-If missing, reinstall: `composer require fastfony/identity-bundle`.
+If the package is installed but bundles.php doesn't mention it, apply the recovery steps above.
 
 ## `The "stof_doctrine_extensions" bundle is not registered`
 
-**Cause**: Flex recipe didn't run (common when `--no-interaction` blocks prompts) and `StofDoctrineExtensionsBundle` isn't in `config/bundles.php`.
-
-Fix — add it manually:
-
-```php
-// config/bundles.php
-Stof\DoctrineExtensionsBundle\StofDoctrineExtensionsBundle::class => ['all' => true],
-```
-
-And ensure `config/packages/stof_doctrine_extensions.yaml` exists (see [identity-bundle.md §4.1](identity-bundle.md)).
+Same root cause as above — the contrib recipe didn't run. Follow [Contrib recipe ignored](#contrib-recipe-ignored--manual-config-needed).
 
 ## Login link / password reset email never arrives
 
@@ -99,9 +122,26 @@ Debug:
 php bin/console debug:twig --filter=path
 ```
 
+## `Unknown "tailwind_stylesheet" function in "base.html.twig"`
+
+**Cause**: Following outdated tailwind-bundle documentation. The `tailwind_stylesheet()` Twig helper was removed in `symfonycasts/tailwind-bundle ≥ 0.11` (which is what you get today with Tailwind v4).
+
+**Fix**: Do nothing special in the template. The integration flows through AssetMapper:
+
+1. `assets/app.js` already contains `import './styles/app.css';` (added by the webapp recipe).
+2. `assets/styles/app.css` should start with `@import "tailwindcss";` (added by `symfony console tailwind:init`).
+3. `base.html.twig` already has `{{ importmap('app') }}`, which emits the compiled CSS link automatically.
+
+Just run `symfony console tailwind:build` (one-shot) or `symfony console tailwind:build --watch` (dev) to (re)compile the CSS. Remove any `{{ tailwind_stylesheet() }}` call if you added one.
+
 ## Login form styles look broken
 
-The bundle ships unstyled HTML templates. Apply your own CSS by overriding the template in `templates/bundles/FastfonyIdentityBundle/`. Fastfony starter-kits use AssetMapper for CSS delivery — import your stylesheet via `importmap:require` and reference it in `base.html.twig`. Do not introduce Webpack Encore or a JS bundler to solve styling.
+The bundle ships HTML templates with inline `<style>` blocks so they render acceptably out of the box. Once Tailwind is wired (above), override the templates in `templates/bundles/FastfonyIdentityBundle/` to apply your design system:
+
+- `form_login.html.twig`, `register.html.twig`, `request_login_link.html.twig`, `forgot_password.html.twig`, `reset_password.html.twig`
+- `emails/` subdirectory for transactional email templates
+
+Import custom CSS via `importmap:require`, or just add Tailwind classes to the overrides. Do not introduce Webpack Encore or a JS bundler to solve styling.
 
 ## Can I use `fastfony/fastfony` (the monolithic starter-kit) alongside these bundles?
 

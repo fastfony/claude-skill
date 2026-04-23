@@ -34,11 +34,15 @@ Use this skill to help a developer:
 
 Read [references/bootstrap-project.md](references/bootstrap-project.md) first. Summary:
 
-1. Create a Symfony skeleton with the webapp recipe.
-2. `git init` and initial commit.
-3. Install the first Fastfony bundle (usually `identity-bundle`).
-4. Follow the integration guide for that bundle.
-5. Optionally add dev tooling (PHPStan, PHP-CS-Fixer, PHPUnit) per [references/conventions.md](references/conventions.md).
+1. Ask the user: Symfony 7.4 LTS (PHP 8.2+) or Symfony 8.0 (PHP 8.4+)?
+2. Create the skeleton: `symfony new ... --webapp --no-git`.
+3. **Enable contrib**: `composer config extra.symfony.allow-contrib true`.
+4. `git init` + initial commit.
+5. `docker compose up -d` (Postgres + Mailpit).
+6. Wire Tailwind via AssetMapper: `composer require symfonycasts/tailwind-bundle` → `tailwind:init` → `tailwind:build`.
+7. Install `fastfony/identity-bundle` (Flex applies recipe cleanly because of step 3).
+8. Migrate, create first user, smoke test `/login` + `/secure-area/`.
+9. Optionally add dev tooling (PHPStan, PHP-CS-Fixer) per [references/conventions.md](references/conventions.md).
 
 ### 2. Add `identity-bundle` to an existing Symfony app
 
@@ -50,22 +54,29 @@ All customization paths (template overrides, bundle config, entity extension, em
 
 ## Execution rules
 
-- **Verify the environment first.** Before installing anything, check:
-  - Symfony ≥ 7.4: `composer show symfony/framework-bundle`
-  - PHP ≥ 8.2: `php -v`
-  - Symfony Flex present: `composer show symfony/flex`
+- **Verify the environment first.** Before installing anything:
+  - Ask which **Symfony version** the starter-kit targets (default 7.4 LTS if unclear).
+  - Check the matching **PHP version**:
+    - Symfony **7.4 LTS** → PHP ≥ **8.2**. Do **not** tell a 7.4 user they need PHP 8.4.
+    - Symfony **8.0** → PHP ≥ **8.4**.
+  - `symfony -v` (Symfony CLI) and `composer -V` present.
+  - If a Homebrew machine has multiple PHPs (`/opt/homebrew/opt/php@X.Y/`), use PATH prefix or a `.php-version` file rather than `brew link --force`.
 
   If any requirement is missing, tell the user before proceeding.
 
+- **Enable contrib recipes BEFORE any `composer require` of a Fastfony or Stof bundle.** Run `composer config extra.symfony.allow-contrib true` right after creating the project. If you skip this step, the Flex recipe is marked IGNORED, then "installed" — but `security.yaml` / `bundles.php` aren't patched. `recipes:install --force` does not recover the missing `add-lines`. This is a single most common way to waste 15 minutes debugging a half-configured app.
+
 - **Read the reference.** Always read the relevant `references/*.md` file in full before running commands. Do not rely on your memory of the summary above.
 
-- **One concern at a time.** Apply changes step by step: bundle install → config → routing → security → DB schema → first user. Run `php bin/console about` or another relevant check after each step. Do not batch unrelated changes.
+- **Use `symfony console` / `symfony server`, not raw `php bin/console`.** The Symfony CLI auto-injects Docker-mapped ports (Postgres, Mailpit) from `compose.override.yaml` — raw `php bin/console` sees the hardcoded `.env` values and will fail to connect when compose uses dynamic port mapping.
 
-- **Commit at milestones.** Suggest `git commit` after each completed step (install, config, DB, first user). The user can always squash later.
+- **One concern at a time.** Apply changes step by step: project skeleton → contrib enabled → docker up → tailwind → bundle install → config verify → DB → first user → smoke test. Run a relevant check after each step (`symfony console about`, `debug:router`, `debug:config security`). Do not batch unrelated changes.
+
+- **Commit at milestones.** Suggest `git commit` after each completed step. The user can always squash later.
 
 - **Confirm destructive actions.** `doctrine:schema:update --force`, migration rollbacks, or overwriting existing config files require explicit user confirmation.
 
-- **Prefer Symfony Flex.** When Flex is available, let it run recipes. Only fall back to manual configuration when the user says Flex is not installed or when they've opted out.
+- **Prefer Symfony Flex.** When Flex is available (and contrib is enabled), let it run recipes. Only fall back to manual configuration when the user says Flex is not installed, or when a recipe was IGNORED before contrib was enabled (see [references/troubleshooting.md](references/troubleshooting.md)).
 
 ## Do not
 

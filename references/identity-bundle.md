@@ -6,10 +6,17 @@ Provides: form login, magic login link, registration with optional email verific
 
 ## 1. Prerequisites
 
-- PHP ≥ 8.1 (recommend 8.2+ for a modern starter-kit)
-- Symfony 7.4 LTS or 8.0
+- PHP version tied to Symfony release:
+  - Symfony **7.4 LTS** → PHP ≥ **8.2**
+  - Symfony **8.0** → PHP ≥ **8.4**
+- The bundle itself accepts PHP ≥ 8.1, but it's only usable behind a Symfony version that satisfies the above.
 - Doctrine ORM (bundle adds it as dep if missing)
 - A working `MAILER_DSN` (required for login link, registration confirmation, password reset)
+- **Symfony Flex contrib recipes enabled.** `fastfony/identity-bundle` and `stof/doctrine-extensions-bundle` are contrib-hosted. Without `extra.symfony.allow-contrib: true` in `composer.json`, the Flex recipe is IGNORED at install time and the bundle ends up half-configured. Enable it **before** `composer require`:
+  ```bash
+  composer config extra.symfony.allow-contrib true
+  ```
+  See [troubleshooting.md — Contrib recipe ignored](troubleshooting.md#contrib-recipe-ignored--manual-config-needed) if this was missed.
 
 Check with:
 
@@ -17,6 +24,7 @@ Check with:
 php -v
 composer show symfony/framework-bundle
 composer show doctrine/orm 2>/dev/null || echo "Doctrine not installed yet"
+composer config extra.symfony.allow-contrib        # should print: true
 ```
 
 ## 2. Install
@@ -125,13 +133,16 @@ This exposes (among others):
 
 | Route name | Path | Purpose |
 |---|---|---|
-| `form_login` | `/login` (default) | Form login page |
+| `form_login` | `/login` | Form login page |
 | `login_check` | `/login_check` | Form submission target |
-| `fastfony_identity_register` | `/register` | Registration form |
-| `fastfony_identity_request_password` | `/request-password` | Password reset request |
+| `_logout_fastfony_identity` | `/logout` | Logout |
+| `register` | `/register` | Registration form (disabled by default — see §Bundle configuration reference) |
+| `login_link` | `/request-login-link` | Magic-link request form |
+| `forgot_password` | `/forgot-password` | Password reset request |
+| `reset_password` | `/reset-password/{token}` | Password reset confirmation |
 | `fastfony_identity_secure_area` | `/secure-area/` | Default authenticated landing |
 
-Confirm with `php bin/console debug:router | grep -i fastfony` after setup.
+Confirm with `symfony console debug:router | grep -iE 'login|register|password|secure-area|logout'` after setup.
 
 ### 4.4 Mailer envelope
 
