@@ -227,81 +227,62 @@ git add .
 git commit -m "feat: first user + smoke test auth flow"
 ```
 
-## 8. (Optional) Developer tooling
+## 8. (Optional) Quality pack
 
-Only if the user asks. Mirror the curated set below as needed.
-
-### PHPStan
+Install [`fastfony/quality-pack`](https://github.com/fastfony/quality-pack) — a curated Symfony pack (MIT) that wires PHPStan, PHP-CS-Fixer and Twig-CS-Fixer in one shot:
 
 ```bash
-composer require --dev phpstan/phpstan phpstan/extension-installer phpstan/phpstan-symfony phpstan/phpstan-doctrine
+composer require --dev fastfony/quality-pack
 ```
 
-`phpstan.dist.neon`:
+The pack is a `symfony-pack`: it pulls the three tools, then its Flex recipe (contrib — already enabled in §2) generates:
 
-```neon
-includes:
-    - vendor/phpstan/phpstan-symfony/extension.neon
-    - vendor/phpstan/phpstan-doctrine/extension.neon
+- `.twig-cs-fixer.dist.php` — Twig linter config
+- `.github/workflows/quality.yml` — GitHub Actions workflow running `composer audit` + PHPStan on every push / PR
+- `Makefile` — shortcuts (`make quality`, `make fix`, etc.)
 
-parameters:
-    level: 6
-    paths:
-        - src
-        - tests
-    symfony:
-        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
-```
+`phpstan.dist.neon` and `.php-cs-fixer.dist.php` are produced by each tool's own Flex recipe, so after the install you get a working out-of-the-box quality setup — no manual config.
 
-Run: `vendor/bin/phpstan analyse`
-
-### PHP-CS-Fixer
+Run locally:
 
 ```bash
-composer require --dev friendsofphp/php-cs-fixer
+vendor/bin/phpstan analyse
+vendor/bin/php-cs-fixer fix --dry-run --diff    # preview
+vendor/bin/php-cs-fixer fix                      # apply
+vendor/bin/twig-cs-fixer lint templates
+vendor/bin/twig-cs-fixer lint templates --fix
 ```
 
-`.php-cs-fixer.dist.php`:
+Or via the Makefile:
 
-```php
-<?php
-
-$finder = (new PhpCsFixer\Finder())
-    ->in([__DIR__ . '/src', __DIR__ . '/tests']);
-
-return (new PhpCsFixer\Config())
-    ->setRules([
-        '@Symfony' => true,
-        '@Symfony:risky' => true,
-        'declare_strict_types' => true,
-        'ordered_imports' => true,
-    ])
-    ->setRiskyAllowed(true)
-    ->setFinder($finder);
+```bash
+make quality
+make fix
 ```
-
-Run: `vendor/bin/php-cs-fixer fix`
-
-### PHPUnit
-
-Already included in `--webapp`. Run `php bin/phpunit` (or `symfony console phpunit` if you installed the bridge).
 
 Commit:
 
 ```bash
 git add .
-git commit -m "chore: add PHPStan + PHP-CS-Fixer"
+git commit -m "chore: add fastfony/quality-pack (PHPStan + CS fixers + CI)"
 ```
+
+PHPUnit is already present from `--webapp`; the quality-pack does not add it. Run tests with `php bin/phpunit` or `symfony console phpunit` (if you installed the bridge).
+
+Do not re-add the individual tools (`phpstan/phpstan`, `friendsofphp/php-cs-fixer`, `vincentlanglet/twig-cs-fixer`) on top of the pack — the pack already requires them.
 
 ## 9. (Optional) CI
 
-Match the PHP version to the chosen Symfony release:
+If you installed the quality-pack (§8), `.github/workflows/quality.yml` is already there — it runs `composer audit` and PHPStan on every push / PR. No duplicate job needed.
+
+What the pack **does not** cover: running the PHPUnit test suite against a real DB. Add a separate workflow for that. Match the PHP version to the chosen Symfony release:
 
 ```yaml
-name: CI
+# .github/workflows/test.yml
+name: Test
 on: [push, pull_request]
 jobs:
-  test:
+  phpunit:
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -319,7 +300,6 @@ jobs:
           php-version: '8.2'    # ← 8.2 for Symfony 7.4, 8.4 for Symfony 8.0
           coverage: none
       - run: composer install --prefer-dist --no-progress
-      - run: vendor/bin/phpstan analyse --no-progress
       - run: php bin/console doctrine:migrations:migrate --no-interaction --env=test
       - run: php bin/phpunit
         env:
@@ -334,8 +314,9 @@ As Fastfony grows, add new bundles the same way: `composer require fastfony/<nam
 
 - [ ] PHP version matches chosen Symfony release
 - [ ] Symfony skeleton installed, contrib enabled, initial commit
-- [ ] Docker services up (DB + mailer), `symfony console` works
-- [ ] Tailwind wired via AssetMapper, `tailwind:build` succeeds
+- [ ] Docker services up (DB + mailer), no port-5432 collision
+- [ ] CSS framework wired via AssetMapper (Tailwind or Bootstrap)
 - [ ] `identity-bundle` installed, config verified, migration runs
 - [ ] First user created, `/login` 200, `/secure-area/` 302
-- [ ] (Optional) Dev tooling + CI
+- [ ] (Optional) `fastfony/quality-pack` installed
+- [ ] (Optional) Test CI workflow alongside the pack's quality.yml

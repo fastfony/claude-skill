@@ -21,6 +21,12 @@ Use this skill to help a developer:
 
 **Only `identity-bundle` exists today.** The ecosystem is growing. If the user asks about a bundle not listed here, say so explicitly and offer to check [github.com/fastfony](https://github.com/fastfony). Do not invent bundles.
 
+## Available packs
+
+| Pack | Purpose | License | Reference |
+|---|---|---|---|
+| [`fastfony/quality-pack`](https://github.com/fastfony/quality-pack) | PHPStan + PHP-CS-Fixer + Twig-CS-Fixer + CI workflow + Makefile, in one `composer require --dev` | MIT | [references/bootstrap-project.md §8](references/bootstrap-project.md) |
+
 ## Core philosophy
 
 - **Composable over monolithic.** Each bundle has a single responsibility. **Never recommend the legacy `fastfony/fastfony` monolithic starter-kit** — it was intentionally split into bundles because it was too opinionated and complete to be reusable.
@@ -42,7 +48,7 @@ Read [references/bootstrap-project.md](references/bootstrap-project.md) first. S
 6. Wire Tailwind via AssetMapper: `composer require symfonycasts/tailwind-bundle` → `tailwind:init` → `tailwind:build`.
 7. Install `fastfony/identity-bundle` (Flex applies recipe cleanly because of step 3).
 8. Migrate, create first user, smoke test `/login` + `/secure-area/`.
-9. Optionally add dev tooling (PHPStan, PHP-CS-Fixer) per [references/conventions.md](references/conventions.md).
+9. Optionally `composer require --dev fastfony/quality-pack` (PHPStan + PHP-CS-Fixer + Twig-CS-Fixer + GitHub Actions workflow + Makefile in one pack) — see [references/bootstrap-project.md §8](references/bootstrap-project.md).
 
 ### 2. Add `identity-bundle` to an existing Symfony app
 
