@@ -167,6 +167,53 @@ Debug:
 php bin/console debug:twig --filter=path
 ```
 
+## `tailwind:build` fails with `signal 9` / `Process has been signaled with signal "9"`
+
+**Cause**: The Tailwind standalone binary downloaded by `symfony console tailwind:init` is **truncated** (partial download). Neither the Symfony CLI nor `tailwind:init` detect this — the file lands at `var/tailwind/v<version>/tailwindcss-<os>-<arch>` with a short size, and every invocation gets SIGKILL at exec time. The direct binary exits 137 (`128 + 9 = SIGKILL`), often silently on `--help`.
+
+Symptoms:
+
+```
+ [ERROR] Tailwind CSS build failed: see output above.
+ # or
+In Process.php line 488:
+  The process has been signaled with signal "9".
+```
+
+Diagnose — compare the binary size to the full release size:
+
+```bash
+ls -l var/tailwind/v*/tailwindcss-*
+# Full Tailwind v4.1.11 on macos-arm64 is ~75 MB.
+# If you see ~51 MB or any size < 70 MB, the download was truncated.
+```
+
+Fix (pick one):
+
+1. **Delete and re-init** — lets `tailwind:init` re-download from scratch:
+   ```bash
+   rm -rf var/tailwind/
+   symfony console tailwind:init
+   symfony console tailwind:build
+   ```
+2. **Copy from a known-good project** if you have one on the same machine + same OS/arch:
+   ```bash
+   cp /path/to/working-project/var/tailwind/v4.1.11/tailwindcss-macos-arm64 var/tailwind/v4.1.11/
+   chmod +x var/tailwind/v4.1.11/tailwindcss-macos-arm64
+   symfony console tailwind:build
+   ```
+3. **Download manually** from the Tailwind releases page and drop it in:
+   ```bash
+   VERSION=4.1.11
+   curl -L -o var/tailwind/v${VERSION}/tailwindcss-macos-arm64 \
+     "https://github.com/tailwindlabs/tailwindcss/releases/download/v${VERSION}/tailwindcss-macos-arm64"
+   chmod +x var/tailwind/v${VERSION}/tailwindcss-macos-arm64
+   ```
+
+After the fix, `tailwind:build` prints `Done in XXms` and the CSS compiles.
+
+Unrelated note: on macOS, running `--help` on a completely broken binary may exit 0 with no output (Gatekeeper / dyld quirk), while execing it via `Process` triggers SIGKILL. Don't trust a silent `--help` as proof the binary is intact — check the file size.
+
 ## `Unknown "tailwind_stylesheet" function in "base.html.twig"`
 
 **Cause**: Following outdated tailwind-bundle documentation. The `tailwind_stylesheet()` Twig helper was removed in `symfonycasts/tailwind-bundle ≥ 0.11` (which is what you get today with Tailwind v4).
