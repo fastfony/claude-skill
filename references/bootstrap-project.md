@@ -90,6 +90,18 @@ git commit -m "chore: initial Symfony <version> webapp skeleton"
 
 The webapp recipe ships `compose.yaml` (Postgres) and `compose.override.yaml` (Mailpit mail catcher with dynamic port mapping — `ports: "5432"` instead of `"5432:5432"`). Nothing to edit: the Symfony CLI auto-detects the host ports and injects `DATABASE_URL` / `MAILER_DSN` when you use `symfony console` / `symfony server`.
 
+### Before `docker compose up`: check for port 5432 collisions
+
+If another project on the host has a Postgres container bound to the **fixed** host port 5432 (e.g. a `compose.yaml` with `ports: "5432:5432"`), all Symfony projects whose `.env` hardcodes `127.0.0.1:5432` — which includes the default webapp recipe — end up sharing that one DB, silently. Migrations from one project land in the other's DB, and `doctrine:migrations:diff` lies about "no changes". See [troubleshooting.md — Tables already exist in a fresh project](troubleshooting.md#tables-already-exist-in-a-fresh-project--doctrinemigrationsdiff-says-no-changes-detected).
+
+```bash
+docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep '0.0.0.0:5432->5432'
+```
+
+If anything shows, either stop that container for the duration of this work, or accept that you'll need a per-project `.env.local` pinning `DATABASE_URL` to the project's actual dynamic port.
+
+### Bring services up
+
 ```bash
 docker compose up -d
 docker compose ps        # verify healthy
@@ -99,7 +111,11 @@ Then always call commands via `symfony console ...` (not `php bin/console ...`) 
 
 Mailpit UI: check `docker compose ps` for the 8025 host port (random). Open it in the browser to see captured emails (login links, password resets).
 
-## 5. Wire up Tailwind via AssetMapper
+## 5. Wire up a CSS framework via AssetMapper
+
+Ask the user: **Tailwind** (Fastfony default) or **Bootstrap**? Both via AssetMapper, never via Encore or a bundler.
+
+### Option A — Tailwind (recommended default)
 
 ```bash
 composer require symfonycasts/tailwind-bundle
@@ -132,6 +148,38 @@ git add .
 git commit -m "feat: add symfonycasts/tailwind-bundle (Tailwind v4 via AssetMapper)"
 ```
 
+### Option B — Bootstrap 5
+
+No dedicated bundle needed. One importmap call pulls JS, Popper, and CSS:
+
+```bash
+symfony console importmap:require bootstrap
+```
+
+This adds three entries to `importmap.php`:
+- `bootstrap` (JS)
+- `@popperjs/core` (dependency for tooltips, dropdowns, popovers)
+- `bootstrap/dist/css/bootstrap.min.css` (`type: 'css'`)
+
+Then in `assets/app.js`:
+
+```js
+import 'bootstrap/dist/css/bootstrap.min.css';
+import './styles/app.css';        // your overrides / custom rules on top
+import 'bootstrap';                // enables data-bs-* components (modals, dropdowns, etc.)
+```
+
+Clean the placeholder `body { background-color: skyblue; }` out of `assets/styles/app.css` — Bootstrap sets its own body styles.
+
+No `tailwind:build` step. No `package.json`. `{{ importmap('app') }}` in `base.html.twig` emits both the CSS link and the JS module tags. Prod: `symfony console asset-map:compile`.
+
+Commit:
+
+```bash
+git add .
+git commit -m "feat: add Bootstrap 5 via AssetMapper (importmap)"
+```
+
 ## 6. Install `fastfony/identity-bundle`
 
 Switch to [references/identity-bundle.md](identity-bundle.md) and follow it end-to-end. Summary of what you'll do:
@@ -155,26 +203,28 @@ git commit -m "feat: integrate fastfony/identity-bundle + first migration"
 ```bash
 symfony console fastfony:user:create      # interactive: email, password
 symfony server:start -d                    # https URL printed
-curl -sk https://127.0.0.1:<port>/login -o /dev/null -w "%{http_code}\n"   # expect 200
-curl -sk https://127.0.0.1:<port>/secure-area/ -o /dev/null -w "%{http_code} → %{redirect_url}\n"   # expect 302 to /login
+curl -sk https://127.0.0.1:<port>/login       -o /dev/null -w "%{http_code}\n"                       # expect 200
+curl -sk https://127.0.0.1:<port>/register    -o /dev/null -w "%{http_code}\n"                       # expect 200 (Flex recipe enables it)
+curl -sk https://127.0.0.1:<port>/secure-area/ -o /dev/null -w "%{http_code} → %{redirect_url}\n"    # expect 302 to /login
 ```
 
-If the user wants public signup exposed, enable it:
+**About `/register` and registration**: the Flex recipe-generated `config/packages/fastfony_identity.yaml` ships with `registration.enabled: true`, so public signup is exposed out of the box. See [identity-bundle.md — Registration default](identity-bundle.md#registration-default-bundle-internal-vs-flex-recipe).
 
-```yaml
-# config/packages/fastfony_identity.yaml
-fastfony_identity:
-    registration:
-        enabled: true
-```
-
-(Registration is `false` by default — without this the `/register` route returns 404.)
+- If the user **wants public signup** (common for SaaS-like kits) → nothing to do.
+- If the user **wants signup disabled** (admin-provisioned accounts only):
+  ```yaml
+  # config/packages/fastfony_identity.yaml
+  fastfony_identity:
+      registration:
+          enabled: false
+  ```
+  Then verify `/register` returns 404.
 
 Commit:
 
 ```bash
 git add .
-git commit -m "feat: enable public registration"
+git commit -m "feat: first user + smoke test auth flow"
 ```
 
 ## 8. (Optional) Developer tooling

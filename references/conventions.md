@@ -136,10 +136,23 @@ final class UserManager
 
 What's allowed:
 
-- **CSS**: Tailwind via `symfonycasts/tailwind-bundle` (Tailwind v4 integration). The helper `tailwind_stylesheet()` was removed in bundle v0.11+ — do **not** call it. The integration flows entirely through AssetMapper: `assets/app.js` imports `./styles/app.css`, and `{{ importmap('app') }}` in `base.html.twig` emits the link tag. Dev: `symfony console tailwind:build --watch` in a second terminal. Prod: `symfony console tailwind:build` + `symfony console asset-map:compile`.
+- **Tailwind CSS** via `symfonycasts/tailwind-bundle` (Tailwind v4 integration). The helper `tailwind_stylesheet()` was removed in bundle v0.11+ — do **not** call it. The integration flows entirely through AssetMapper: `assets/app.js` imports `./styles/app.css`, and `{{ importmap('app') }}` in `base.html.twig` emits the link tag. Dev: `symfony console tailwind:build --watch` in a second terminal. Prod: `symfony console tailwind:build` + `symfony console asset-map:compile`.
+- **Bootstrap** via pure importmap (no dedicated bundle needed):
+  ```bash
+  symfony console importmap:require bootstrap
+  ```
+  This adds three entries to `importmap.php` in one go: the JS package, `@popperjs/core` (dependency for tooltips/dropdowns), and `bootstrap/dist/css/bootstrap.min.css` (with `type: 'css'`). Then in `assets/app.js`:
+  ```js
+  import 'bootstrap/dist/css/bootstrap.min.css';
+  import './styles/app.css';   // your overrides on top
+  import 'bootstrap';           // enables data-bs-* components
+  ```
+  No build step, no `package.json`. `{{ importmap('app') }}` emits both the CSS link and the JS module tag. Prod: `symfony console asset-map:compile`.
 - **Plain CSS**: imported through the importmap like any asset.
-- **JS interactivity**: **Stimulus** controllers (`symfony/stimulus-bundle`) and **Turbo** (`symfony/ux-turbo`) — both wire cleanly into AssetMapper.
+- **JS interactivity**: **Stimulus** controllers (`symfony/stimulus-bundle`) and **Turbo** (`symfony/ux-turbo`) — both wire cleanly into AssetMapper, and are complementary to Tailwind or Bootstrap.
 - **Third-party JS**: add via `symfony console importmap:require <package>` (uses JSPM / jsDelivr CDN resolution). Avoid anything that requires a build step (JSX, TSX, SCSS preprocessing beyond Tailwind).
+
+Tailwind and Bootstrap can coexist (not recommended, but possible). Pick one per starter-kit based on the user's preference. Default to Tailwind if they don't care — Fastfony's own bundle templates are lighter-weight there.
 
 What's NOT allowed:
 

@@ -68,7 +68,7 @@ All customization paths (template overrides, bundle config, entity extension, em
 
 - **Read the reference.** Always read the relevant `references/*.md` file in full before running commands. Do not rely on your memory of the summary above.
 
-- **Use `symfony console` / `symfony server`, not raw `php bin/console`.** The Symfony CLI auto-injects Docker-mapped ports (Postgres, Mailpit) from `compose.override.yaml` — raw `php bin/console` sees the hardcoded `.env` values and will fail to connect when compose uses dynamic port mapping.
+- **Prefer `symfony console` / `symfony server` over raw `php bin/console`.** The Symfony CLI sometimes injects Docker-mapped ports from `compose.override.yaml`, but it's not guaranteed (`symfony var:export | grep DATABASE_URL` may return empty even with services running). Whenever the project's `.env` hardcodes `DATABASE_URL=...@127.0.0.1:5432/...`, also verify that no other Postgres container on the host is bound to fixed port 5432 — otherwise the project silently writes to that shared DB. See [references/troubleshooting.md](references/troubleshooting.md#tables-already-exist-in-a-fresh-project--doctrinemigrationsdiff-says-no-changes-detected).
 
 - **One concern at a time.** Apply changes step by step: project skeleton → contrib enabled → docker up → tailwind → bundle install → config verify → DB → first user → smoke test. Run a relevant check after each step (`symfony console about`, `debug:router`, `debug:config security`). Do not batch unrelated changes.
 

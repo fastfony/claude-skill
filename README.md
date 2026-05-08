@@ -55,13 +55,9 @@ Planned:
 
 See the [Fastfony GitHub organization](https://github.com/fastfony) for the current bundle list.
 
-## Contributing
+## Support
 
-This skill evolves alongside the Fastfony ecosystem. PRs welcome:
-
-- New bundle reference files following the template of [`references/identity-bundle.md`](references/identity-bundle.md).
-- Improvements to conventions or troubleshooting based on real-world usage.
-- Bug reports on skill behavior (what should have triggered but didn't, or vice versa).
+Problem with the skill? Email [support@fastfony.com](mailto:support@fastfony.com).
 
 ## License
 

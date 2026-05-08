@@ -2,6 +2,46 @@
 
 Common issues when integrating Fastfony bundles, with the diagnostic command and fix.
 
+## Tables already exist in a fresh project / `doctrine:migrations:diff` says "No changes detected"
+
+**Cause**: Another Postgres container on the host is bound to the default port **5432**, intercepting the project's connection. The webapp recipe's `compose.override.yaml` maps `ports: "5432"` (dynamic high port) to avoid collision, but the project's `.env` hardcodes `DATABASE_URL="postgresql://...@127.0.0.1:5432/app..."`. If `symfony console` doesn't actively inject the Docker-mapped port, raw `php bin/console` / fallback env wins and targets whichever container owns host `5432` — often a leftover from another project like `symfony-database-1`, `some-project-database-1` bound with `ports: "5432:5432"`.
+
+Symptoms that look like "auto-schema":
+
+- `docker compose ps` shows your project DB on a random port (e.g. `32773`).
+- `symfony console dbal:run-sql "SELECT ..."` returns tables you never migrated.
+- Two different projects on the machine seem to share the same users/migrations.
+
+Diagnose:
+
+```bash
+docker ps --format 'table {{.Names}}\t{{.Ports}}' | grep 5432
+# Look for any container with "0.0.0.0:5432->5432/tcp" — that one is intercepting.
+```
+
+Fix (pick one):
+
+1. **Stop the colliding container** while working on this project:
+   ```bash
+   docker stop <colliding-container-name>
+   ```
+2. **Or override `DATABASE_URL` locally** to target your project's actual port (from `docker compose ps`):
+   ```bash
+   # .env.local
+   DATABASE_URL="postgresql://app:!ChangeMe!@127.0.0.1:<actual-port>/app?serverVersion=16&charset=utf8"
+   ```
+3. **Or** keep using `symfony console` exclusively and verify it's injecting the right URL:
+   ```bash
+   symfony var:export | grep DATABASE_URL
+   ```
+   If empty, Symfony CLI isn't injecting — fall back to (2).
+
+Before declaring "auto-schema magic", always check the `user_count` in the DB you *expect* vs the DB you're actually hitting:
+
+```bash
+docker exec <your-project-db-container> psql -U app -d app -c 'SELECT COUNT(*) FROM "user";'
+```
+
 ## Contrib recipe ignored / manual config needed
 
 **Cause**: At install time, `composer require fastfony/identity-bundle` (or `stof/doctrine-extensions-bundle`) printed:
@@ -73,7 +113,10 @@ Ensure `security.firewalls.fastfony_identity` exists (see [identity-bundle.md §
 
 ## `/register` returns 404
 
-**Cause**: Registration is disabled by default.
+**Cause**: Registration is disabled. Two sub-cases:
+
+1. **No `config/packages/fastfony_identity.yaml` at all** → the bundle's internal default (`enabled: false`) applies. Happens when Flex didn't run or contrib wasn't enabled (see [Contrib recipe ignored](#contrib-recipe-ignored--manual-config-needed)).
+2. **The yaml exists but was manually edited to `enabled: false`** → change it back to `true`.
 
 Fix in `config/packages/fastfony_identity.yaml`:
 
@@ -82,6 +125,8 @@ fastfony_identity:
     registration:
         enabled: true
 ```
+
+Note: the Flex recipe-generated yaml already sets `enabled: true`, so a normal Flex install exposes `/register` with no extra step. See [identity-bundle.md — Registration default](identity-bundle.md#registration-default-bundle-internal-vs-flex-recipe).
 
 ## `doctrine:migrations:diff` produces no changes
 

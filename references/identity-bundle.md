@@ -217,7 +217,7 @@ fastfony_identity:
     group:
         class: Fastfony\IdentityBundle\Entity\Identity\Group
     registration:
-        enabled: false                           # ⚠️ disabled by default — enable explicitly
+        enabled: false                           # bundle default — but see note below
     login:
         default_method: form_login               # or "login_link"
     login_link:
@@ -232,7 +232,17 @@ fastfony_identity:
         redirect_route: fastfony_identity_secure_area
 ```
 
-**Registration is disabled by default.** To expose `/register`, set `registration.enabled: true`.
+### Registration default: bundle internal vs Flex recipe
+
+Two different defaults, easy to confuse:
+
+- **Bundle internal default** (in `FastfonyIdentityBundle::configure()`): `registration.enabled: false`. That's what applies if no `config/packages/fastfony_identity.yaml` exists.
+- **Flex recipe-generated `config/packages/fastfony_identity.yaml`**: ships with `registration.enabled: true` set explicitly. So if the user installed via Flex (contrib enabled per [bootstrap-project.md §2](bootstrap-project.md#2-enable-contrib-recipes-do-this-before-any-composer-require)), **registration is exposed out of the box** — `/register` returns 200 immediately.
+
+What to tell the user:
+
+- If they want **public signup enabled** → do nothing, it already is (or create/edit the yaml to set `enabled: true` if you skipped Flex).
+- If they want signup **disabled**, explicitly set `enabled: false` in `config/packages/fastfony_identity.yaml` and verify `/register` now 404s.
 
 ---
 
