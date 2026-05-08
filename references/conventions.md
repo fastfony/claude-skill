@@ -173,9 +173,9 @@ Minimum for a bundle to be publishable under `fastfony/*`:
 
 ## Licensing
 
-- **Bundles published under `fastfony/`**: MIT (like `identity-bundle`). Easy adoption is the whole point.
+- **Everything Fastfony publishes is MIT**: bundles (e.g. `identity-bundle`), packs (e.g. `quality-pack`), and the Claude Code skill itself. Easy adoption is the whole point.
 - **A starter-kit built by a user from Fastfony bundles**: whatever license the user chooses.
-- The legacy `fastfony/fastfony` monolithic kit is Apache-2.0 + Commons-Clause (commercial use paid). Do not confuse the two models.
+- The legacy `fastfony/fastfony` monolithic kit was Apache-2.0 + Commons-Clause (commercial use paid). It's deprecated as a starting point — don't confuse it with the current MIT-only model.
 
 ## Naming
 

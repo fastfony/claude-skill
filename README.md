@@ -57,8 +57,12 @@ See the [Fastfony GitHub organization](https://github.com/fastfony) for the curr
 
 ## Support
 
-Problem with the skill? Email [support@fastfony.com](mailto:support@fastfony.com).
+Found a bug or want a new bundle covered? Open an issue on this repository, or email [support@fastfony.com](mailto:support@fastfony.com).
+
+## Like it?
+
+If the skill saves you time, [buy the maintainer a coffee ☕](https://buymeacoffee.com/neothone) — entirely optional, always appreciated.
 
 ## License
 
-MIT — same as most Fastfony bundles, so the skill can ship alongside them without license friction.
+[MIT](LICENSE) — like every Fastfony bundle and pack. Use it, fork it, ship it, sell what you build with it.
