@@ -132,9 +132,9 @@ final class UserManager
 
 ## Frontend / assets
 
-**AssetMapper only.** Starter-kits and bundles generated or extended via this skill must use Symfony AssetMapper as the sole asset handler. No Webpack Encore, no Vite, no bundlers, no Node build step. This is a hard rule — it differentiates current Fastfony kits from the legacy `fastfony/fastfony` monolith (which used Encore + Vue).
+**Default = Symfony AssetMapper.** New starter-kits go on AssetMapper unless the user explicitly asks for Webpack Encore. AssetMapper is faster to set up, has no Node build step, and aligns with where Symfony itself is heading.
 
-What's allowed:
+### Default path (AssetMapper)
 
 - **Tailwind CSS** via `symfonycasts/tailwind-bundle` (Tailwind v4 integration). The helper `tailwind_stylesheet()` was removed in bundle v0.11+ — do **not** call it. The integration flows entirely through AssetMapper: `assets/app.js` imports `./styles/app.css`, and `{{ importmap('app') }}` in `base.html.twig` emits the link tag. Dev: `symfony console tailwind:build --watch` in a second terminal. Prod: `symfony console tailwind:build` + `symfony console asset-map:compile`.
 - **Bootstrap** via pure importmap (no dedicated bundle needed):
@@ -150,17 +150,27 @@ What's allowed:
   No build step, no `package.json`. `{{ importmap('app') }}` emits both the CSS link and the JS module tag. Prod: `symfony console asset-map:compile`.
 - **Plain CSS**: imported through the importmap like any asset.
 - **JS interactivity**: **Stimulus** controllers (`symfony/stimulus-bundle`) and **Turbo** (`symfony/ux-turbo`) — both wire cleanly into AssetMapper, and are complementary to Tailwind or Bootstrap.
-- **Third-party JS**: add via `symfony console importmap:require <package>` (uses JSPM / jsDelivr CDN resolution). Avoid anything that requires a build step (JSX, TSX, SCSS preprocessing beyond Tailwind).
+- **Third-party JS**: add via `symfony console importmap:require <package>` (uses JSPM / jsDelivr CDN resolution). Avoid anything that requires a build step (JSX, TSX, SCSS preprocessing beyond Tailwind) — *unless* the project is on the Encore opt-in path below.
 
-Tailwind and Bootstrap can coexist (not recommended, but possible). Pick one per starter-kit based on the user's preference. Default to Tailwind if they don't care — Fastfony's own bundle templates are lighter-weight there.
+Tailwind and Bootstrap can coexist (not recommended, but possible). Pick one per starter-kit based on the user's preference.
 
-What's NOT allowed:
+### Opt-in path (Webpack Encore)
 
-- Webpack Encore (`@symfony/webpack-encore`), Vite, Parcel, Rollup, or any bundler.
-- `package.json` for runtime deps. A `package.json` may exist only for Tailwind CLI if the user opts into it, but prefer the Symfony Tailwind bundle which handles this transparently.
-- Vue, React, Svelte, Angular — no SPA frameworks as build-step deps. If a feature truly needs client-side reactivity beyond Stimulus/Turbo, open an issue rather than introducing a bundler.
+Only when the user **explicitly asks** for Encore — typical reasons: existing Encore know-how, Vue Single-File Components, or a complex JS toolchain that doesn't fit JSPM. **Never propose Encore unprompted.**
 
-Migrating a user's legacy Encore setup to AssetMapper is in scope for this skill; installing Encore is not.
+When chosen, use the dedicated Fastfony packs (do not install `symfony/webpack-encore-bundle` directly):
+
+- [`fastfony/webapp-webpack-encore-pack`](https://github.com/fastfony/webapp-webpack-encore-pack) — webapp baseline with Encore. Removes AssetMapper + Stimulus from the skeleton, wires `webpack-encore-bundle`, keeps Stimulus and Turbo via Encore.
+- [`fastfony/webapp-webpack-encore-vue-sfc-pack`](https://github.com/fastfony/webapp-webpack-encore-vue-sfc-pack) — adds `.vue` Single-File Component compilation on top of the Encore stack.
+- [`fastfony/tailwind-webpack-encore-pack`](https://github.com/fastfony/tailwind-webpack-encore-pack) — Tailwind CSS through Encore + PostCSS (`@tailwindcss/postcss`). Use this instead of `symfonycasts/tailwind-bundle` when on Encore.
+
+Rules for the Encore path:
+
+- **One asset strategy per project.** AssetMapper and Encore must not coexist — the Encore packs deliberately remove AssetMapper.
+- **Always use the packs**, never install raw `@symfony/webpack-encore` or `webpack-encore-bundle`. The packs ship the `webpack.config.js` and Flex recipes that match Fastfony conventions.
+- **Tailwind on Encore** = `fastfony/tailwind-webpack-encore-pack` only. Do not mix with `symfonycasts/tailwind-bundle`.
+
+Migrating a legacy Encore setup to AssetMapper is in scope for this skill if the user wants it. Going the other way (AssetMapper → Encore) is also in scope — install the relevant pack(s) on a fresh skeleton instead of bolting onto the existing AssetMapper setup.
 
 ## Code quality
 

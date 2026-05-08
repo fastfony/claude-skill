@@ -113,7 +113,9 @@ Mailpit UI: check `docker compose ps` for the 8025 host port (random). Open it i
 
 ## 5. Wire up a CSS framework via AssetMapper
 
-Ask the user: **Tailwind** (Fastfony default) or **Bootstrap**? Both via AssetMapper, never via Encore or a bundler.
+Ask the user: **Tailwind** (Fastfony default) or **Bootstrap**? Both via AssetMapper.
+
+> If — and only if — the user explicitly says they need **Webpack Encore** (Vue SFC, existing Encore expertise, complex JS toolchain), skip this section and jump to [§5bis Webpack Encore opt-in](#5bis-webpack-encore-opt-in-only-when-explicitly-asked). Default to AssetMapper otherwise — never propose Encore unprompted.
 
 ### Option A — Tailwind (recommended default)
 
@@ -179,6 +181,48 @@ Commit:
 git add .
 git commit -m "feat: add Bootstrap 5 via AssetMapper (importmap)"
 ```
+
+## 5bis. Webpack Encore opt-in (only when explicitly asked)
+
+Skip this section unless the user clearly chose Encore over AssetMapper. Encore opt-in is the **alternative** path — it replaces AssetMapper entirely (the two cannot coexist).
+
+Three composable Fastfony packs cover the Encore path. **Always use these packs**, never install `symfony/webpack-encore-bundle` or raw `@symfony/webpack-encore` directly — the packs ship the `webpack.config.js` and Flex recipes that match Fastfony conventions:
+
+| Pack | When to install |
+|---|---|
+| [`fastfony/webapp-webpack-encore-pack`](https://github.com/fastfony/webapp-webpack-encore-pack) | Always — it's the Encore baseline (replaces AssetMapper, wires Encore + Stimulus + Turbo). |
+| [`fastfony/tailwind-webpack-encore-pack`](https://github.com/fastfony/tailwind-webpack-encore-pack) | When the user wants Tailwind on the Encore stack. Use this **instead of** `symfonycasts/tailwind-bundle`. |
+| [`fastfony/webapp-webpack-encore-vue-sfc-pack`](https://github.com/fastfony/webapp-webpack-encore-vue-sfc-pack) | When the user needs `.vue` Single-File Components. |
+
+Typical Encore install (after §4, instead of §5):
+
+```bash
+# Required: Encore baseline (replaces AssetMapper; contrib already enabled per §2)
+composer require fastfony/webapp-webpack-encore-pack
+
+# Optional add-ons, stack as needed:
+composer require fastfony/tailwind-webpack-encore-pack            # Tailwind on Encore
+composer require fastfony/webapp-webpack-encore-vue-sfc-pack       # Vue SFC support
+
+# Install Node deps and run a first build
+npm install
+npm run dev   # or: npm run build (production minified)
+```
+
+After install, verify:
+
+- `assets/app.js` and `assets/styles/app.css` (or equivalent entries) are referenced from `webpack.config.js`.
+- `templates/base.html.twig` includes `{{ encore_entry_link_tags('app') }}` and `{{ encore_entry_script_tags('app') }}` instead of `{{ importmap('app') }}`.
+- `bin/console debug:asset-map` should now error or be empty — AssetMapper is gone, that's expected.
+
+Commit:
+
+```bash
+git add .
+git commit -m "feat: switch asset strategy to Webpack Encore via Fastfony packs"
+```
+
+Then resume with §6.
 
 ## 6. Install `fastfony/identity-bundle`
 
@@ -315,7 +359,7 @@ As Fastfony grows, add new bundles the same way: `composer require fastfony/<nam
 - [ ] PHP version matches chosen Symfony release
 - [ ] Symfony skeleton installed, contrib enabled, initial commit
 - [ ] Docker services up (DB + mailer), no port-5432 collision
-- [ ] CSS framework wired via AssetMapper (Tailwind or Bootstrap)
+- [ ] CSS framework wired via AssetMapper (Tailwind or Bootstrap) — or via Encore packs if explicitly asked
 - [ ] `identity-bundle` installed, config verified, migration runs
 - [ ] First user created, `/login` 200, `/secure-area/` 302
 - [ ] (Optional) `fastfony/quality-pack` installed

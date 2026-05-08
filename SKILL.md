@@ -27,10 +27,18 @@ Use this skill to help a developer:
 |---|---|---|---|
 | [`fastfony/quality-pack`](https://github.com/fastfony/quality-pack) | PHPStan + PHP-CS-Fixer + Twig-CS-Fixer + CI workflow + Makefile, in one `composer require --dev` | MIT | [references/bootstrap-project.md §8](references/bootstrap-project.md) |
 
+**Webpack Encore opt-in packs** — only when the user explicitly chooses Encore over the recommended AssetMapper. Do not propose them by default.
+
+| Pack | Purpose | License |
+|---|---|---|
+| [`fastfony/webapp-webpack-encore-pack`](https://github.com/fastfony/webapp-webpack-encore-pack) | webapp baseline with Webpack Encore instead of AssetMapper. Removes AssetMapper + Stimulus from the skeleton, wires `symfony/webpack-encore-bundle`, keeps Stimulus and Turbo via Encore. | MIT |
+| [`fastfony/webapp-webpack-encore-vue-sfc-pack`](https://github.com/fastfony/webapp-webpack-encore-vue-sfc-pack) | adds Vue Single-File Component (`.vue`) compilation on top of the Encore stack. | MIT |
+| [`fastfony/tailwind-webpack-encore-pack`](https://github.com/fastfony/tailwind-webpack-encore-pack) | Tailwind CSS through Encore + PostCSS (`@tailwindcss/postcss`). Use it instead of `symfonycasts/tailwind-bundle` when the project is already on Encore. | MIT |
+
 ## Core philosophy
 
 - **Composable over monolithic.** Each bundle has a single responsibility. **Never recommend the legacy `fastfony/fastfony` monolithic starter-kit** — it was intentionally split into bundles because it was too opinionated and complete to be reusable.
-- **Modern frontend = AssetMapper only.** Unlike the legacy `fastfony/fastfony` (which used Webpack Encore + Vue), starter-kits generated with this skill **must use Symfony AssetMapper exclusively**. No Webpack Encore, no Vite, no JS bundlers, no Node build step. Stimulus and Turbo (via Symfony UX) are the supported interactivity layer. See [references/conventions.md#frontend--assets](references/conventions.md#frontend--assets).
+- **Modern frontend = AssetMapper by default.** Starter-kits generated with this skill default to Symfony AssetMapper — no Encore, no Vite, no Node build step. Stimulus and Turbo (via Symfony UX) cover interactivity. **If, and only if, the user explicitly asks for Webpack Encore** (legacy familiarity, complex JS toolchain, Vue SFC needs), Fastfony provides three opt-in packs (`webapp-webpack-encore-pack`, `webapp-webpack-encore-vue-sfc-pack`, `tailwind-webpack-encore-pack`) — see the table above. Never propose Encore unprompted. See [references/conventions.md#frontend--assets](references/conventions.md#frontend--assets).
 - **Standard Symfony.** Config via `config/packages/*.yaml`, templates overridable via `templates/bundles/{BundleName}/`, database via Doctrine ORM. No proprietary patterns.
 - **Timestampable + Managers.** Entities use Stof's Timestampable; database operations go through dedicated `*Manager` services (not repositories). See [references/conventions.md](references/conventions.md).
 
@@ -87,8 +95,9 @@ All customization paths (template overrides, bundle config, entity extension, em
 ## Do not
 
 - Recommend the legacy `fastfony/fastfony` monolithic starter-kit.
-- Install Webpack Encore, Vite, or any other JS bundler. AssetMapper is the only asset strategy.
-- Introduce Vue, React, Svelte, or any SPA framework as a build-step dependency. If interactivity is needed, use Stimulus and Turbo (Symfony UX).
+- Propose Webpack Encore, Vite, or any other JS bundler unprompted. Default to AssetMapper. Switch to Encore **only** when the user explicitly asks for it, and **only** through the dedicated Fastfony Encore packs (never by adding `symfony/webpack-encore-bundle` directly).
+- Mix AssetMapper and Encore in the same project — pick one. The Encore packs deliberately remove AssetMapper from the skeleton.
+- Introduce Vue, React, Svelte, or any SPA framework as a build-step dependency unprompted. Stimulus + Turbo cover most needs. If the user explicitly wants Vue SFC, use `fastfony/webapp-webpack-encore-vue-sfc-pack` (which implies Encore).
 - Invent bundles or config options not documented in the reference files.
 - Skip `security.yaml` configuration — `identity-bundle` cannot work without it.
 - Run `doctrine:schema:update --force` in an app with existing data.
